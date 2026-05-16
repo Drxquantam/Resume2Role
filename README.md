@@ -22,7 +22,7 @@ Resume2Role/
 1. Install dependencies:
 
 ```bash
-npm run install:all
+npm run install
 ```
 
 2. Create backend environment file:
