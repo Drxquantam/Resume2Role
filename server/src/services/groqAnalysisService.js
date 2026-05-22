@@ -73,15 +73,15 @@ const cleanAnalysis = (analysis, payload) => ({
   role: normalizeText(analysis.role) || payload.role,
   founderStory: normalizeText(analysis.founderStory),
   missionOrMotto: normalizeText(analysis.missionOrMotto),
-  products: analysis.products?.slice(0, 5) || [],
-  services: analysis.services?.slice(0, 5) || [],
-  requiredSkills: analysis.requiredSkills?.slice(0, 8) || [],
-  suggestedProjects: analysis.suggestedProjects?.slice(0, 5) || [],
-  interviewTopics: analysis.interviewTopics?.slice(0, 8) || [],
-  onlineAssessment: analysis.onlineAssessment?.slice(0, 6) || [],
-  interviewQuestionTypes: analysis.interviewQuestionTypes?.slice(0, 8) || [],
-  recentNews: analysis.recentNews?.slice(0, 4) || [],
-  missingSkills: analysis.missingSkills?.slice(0, 5) || [],
+  products: analysis.products?.slice(0, 7) || [],
+  services: analysis.services?.slice(0, 7) || [],
+  requiredSkills: analysis.requiredSkills?.slice(0, 10) || [],
+  suggestedProjects: analysis.suggestedProjects?.slice(0, 7) || [],
+  interviewTopics: analysis.interviewTopics?.slice(0, 10) || [],
+  onlineAssessment: analysis.onlineAssessment?.slice(0, 8) || [],
+  interviewQuestionTypes: analysis.interviewQuestionTypes?.slice(0, 10) || [],
+  recentNews: analysis.recentNews?.slice(0, 6) || [],
+  missingSkills: analysis.missingSkills?.slice(0, 7) || [],
   fitScore: Math.min(100, Math.max(0, Math.round(Number(analysis.fitScore) || 70))),
   extractedSkills: payload.extractedSkills || [],
   resumeFileName: payload.resumeFileName || "",
@@ -100,22 +100,23 @@ export const generateGroqAnalysis = async (payload) => {
 
   const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
   const extractedSkills = payload.extractedSkills?.length ? payload.extractedSkills.join(", ") : "No resume skills extracted";
-  const prompt = `Create a concise preparation dashboard.
+  const prompt = `Create a detailed but easy-to-understand placement preparation dashboard.
 
 Company: ${payload.companyName}
 Target role: ${payload.role}
 Resume skills extracted: ${extractedSkills}
 
 Requirements:
-- Make the company overview specific to this company, not generic.
-- Explain what the company actually does in simple language with 3 to 5 sentences.
-- Explain why the founder or founding team started the company; if uncertain, say what public company history suggests.
-- Include the company mission, motto, or practical purpose in simple words.
-- Recommend role-specific skills and interview topics.
+- Write for students who may not know business jargon.
+- Make the company overview specific to this company, not generic. Use 3 to 4 simple sentences.
+- Explain what the company actually does in simple language with 5 to 7 useful sentences. Mention customers/users, main products/services, and how it makes money or creates value.
+- Explain why the founder or founding team started the company in 3 to 5 simple sentences. If uncertain, say what public company history suggests instead of pretending.
+- Explain the company mission, motto, or practical purpose in 3 to 4 simple sentences.
+- Employee review summary should explain work culture, learning, pressure, management, and what students should be ready for in 4 to 6 simple sentences.
+- Recommend role-specific skills and interview topics based on the target role.
 - Include online assessment patterns and interview question types students should expect for this company/role.
-- Compare extracted resume skills with role requirements.
-- Keep overview, whatCompanyDoes, founderStory, missionOrMotto, and reviewSummary under 90 words each.
-- Arrays must contain 3 to 5 short items.
+- Compare extracted resume skills with role requirements and calculate fitScore realistically.
+- Arrays must contain 5 to 8 short but useful items.
 - recentNews can include broad public developments or research prompts, but must not fabricate exact dates or fake headlines.
 
 Return only valid JSON with exactly these keys:
@@ -134,7 +135,7 @@ Array fields must be arrays of strings. fitScore must be a number from 0 to 100.
         {
           role: "system",
           content:
-            "You generate company and role preparation dashboards for students. Be specific to the company and role. Avoid generic template language. If public facts are uncertain, say so briefly instead of inventing exact news. Always return valid JSON."
+            "You generate detailed, student-friendly company and role preparation dashboards. Use simple language, explain ideas clearly, and avoid tiny one-line answers. Be specific to the company and role. Avoid generic template language. If public facts are uncertain, say so briefly instead of inventing exact news. Always return valid JSON."
         },
         {
           role: "user",
@@ -143,7 +144,7 @@ Array fields must be arrays of strings. fitScore must be a number from 0 to 100.
       ],
       response_format: { type: "json_object" },
       temperature: 0.4,
-      max_tokens: 4096
+      max_tokens: 6000
     })
   });
 
