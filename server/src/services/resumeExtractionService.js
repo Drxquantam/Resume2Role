@@ -1,10 +1,9 @@
-import mammoth from "mammoth";
-import { PDFParse } from "pdf-parse";
 import { extractSkillsFromText } from "./skillExtractionService.js";
 
 const getExtension = (filename = "") => filename.split(".").pop()?.toLowerCase() || "";
 
 const extractPdfText = async (buffer) => {
+  const { PDFParse } = await import("pdf-parse");
   const parser = new PDFParse({ data: new Uint8Array(buffer) });
 
   try {
@@ -16,6 +15,7 @@ const extractPdfText = async (buffer) => {
 };
 
 const extractDocxText = async (buffer) => {
+  const mammoth = await import("mammoth");
   const result = await mammoth.extractRawText({ buffer });
   return result.value || "";
 };
