@@ -18,7 +18,10 @@ const ensurePdfGlobals = async () => {
 const extractPdfText = async (buffer) => {
   await ensurePdfGlobals();
   const { PDFParse } = await import("pdf-parse");
-  const parser = new PDFParse({ data: new Uint8Array(buffer) });
+  const parser = new PDFParse({
+    data: new Uint8Array(buffer),
+    disableWorker: true
+  });
 
   try {
     const result = await parser.getText();
