@@ -1,7 +1,7 @@
 import crypto from "crypto";
 import { isDatabaseConnected } from "../config/db.js";
 import CompanyAnalysis from "../models/CompanyAnalysis.js";
-import { generateGeminiAnalysis } from "./geminiAnalysisService.js";
+import { generateGroqAnalysis } from "./groqAnalysisService.js";
 import { generateMockAnalysis } from "./mockAnalysisService.js";
 
 const memoryStore = new Map();
@@ -19,10 +19,10 @@ export const analyzeCompany = async (payload) => {
   let analysis;
 
   try {
-    analysis = await generateGeminiAnalysis(payload);
+    analysis = await generateGroqAnalysis(payload);
   } catch (error) {
     if (process.env.ALLOW_DEMO_FALLBACK === "true") {
-      console.error("Gemini analysis failed. Falling back to demo analysis:", error.message);
+      console.error("Groq analysis failed. Falling back to demo analysis:", error.message);
       analysis = generateMockAnalysis(payload, error.message);
     } else {
       throw error;

@@ -54,42 +54,39 @@ const parseSkillJson = (text) => {
   }
 };
 
-const extractSkillsWithGemini = async (text) => {
-  if (!process.env.GEMINI_API_KEY || !text.trim()) {
+const extractSkillsWithGroq = async (text) => {
+  if (!process.env.GROQ_API_KEY || !text.trim()) {
     return [];
   }
 
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${process.env.GEMINI_API_KEY}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        contents: [
-          {
-            role: "user",
-            parts: [
-              {
-                text: `Extract technical skills, tools, frameworks, programming languages, databases, cloud platforms, and core CS subjects from this resume text.
+  const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${process.env.GROQ_API_KEY}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        {
+          role: "system",
+          content: "Extract resume skills and return only valid JSON."
+        },
+        {
+          role: "user",
+          content: `Extract technical skills, tools, frameworks, programming languages, databases, cloud platforms, and core CS subjects from this resume text.
 Return only JSON like {"skills":["React","Python"]}. Do not include markdown.
 
 Resume text:
 ${text.slice(0, 12000)}`
-              }
-            ]
-          }
-        ],
-        generationConfig: {
-          response_mime_type: "application/json",
-          temperature: 0.2,
-          maxOutputTokens: 800
         }
-      })
-    }
-  );
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.2,
+      max_tokens: 800
+    })
+  });
 
   const data = await response.json();
 
@@ -97,7 +94,7 @@ ${text.slice(0, 12000)}`
     return [];
   }
 
-  const responseText = data.candidates?.[0]?.content?.parts?.map((part) => part.text || "").join("") || "";
+  const responseText = data.choices?.[0]?.message?.content || "";
   return parseSkillJson(responseText);
 };
 
@@ -136,7 +133,7 @@ export const extractResumeSkills = async (file) => {
   }
 
   const keywordSkills = extractSkillsFromText(text);
-  const aiSkills = await extractSkillsWithGemini(text);
+  const aiSkills = await extractSkillsWithGroq(text);
   const extractedSkills = Array.from(new Set([...keywordSkills, ...aiSkills])).slice(0, 24);
 
   return {

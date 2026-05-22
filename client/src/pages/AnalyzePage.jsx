@@ -49,7 +49,15 @@ const AnalyzePage = () => {
         extractedSkills: [],
         resumeFileName: file.name
       }));
-      setResumeStatus(fileError.response?.data?.message || "Resume selected, but text could not be read from this file.");
+      if (fileError.response?.data?.message) {
+        setResumeStatus(fileError.response.data.message);
+      } else if (fileError.code === "ECONNABORTED") {
+        setResumeStatus("Resume extraction timed out. Try a smaller PDF/DOCX or upload a TXT version.");
+      } else if (fileError.request) {
+        setResumeStatus("Resume extraction API did not respond. Check the Vercel function logs for /api/company/resume/extract.");
+      } else {
+        setResumeStatus(fileError.message || "Resume selected, but text could not be read from this file.");
+      }
     }
   };
 
@@ -76,7 +84,7 @@ const AnalyzePage = () => {
       navigate(`/dashboard/${result.id || result._id}`);
     } catch (apiError) {
       if (apiError.code === "ECONNABORTED") {
-        setError("Analysis took too long. Gemini may be slow right now; try again in a moment.");
+        setError("Analysis took too long. Groq may be slow right now; try again in a moment.");
       } else if (apiError.response?.data?.message) {
         setError(apiError.response.data.message);
       } else if (apiError.request) {

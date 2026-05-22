@@ -1,11 +1,5 @@
 const normalizeText = (value) => String(value || "").trim();
 
-const getGeminiText = (data) => {
-  const candidate = data.candidates?.[0];
-  const parts = candidate?.content?.parts || [];
-  return parts.map((part) => part.text || "").join("").trim();
-};
-
 const getBalancedJsonObject = (text) => {
   const start = text.indexOf("{");
 
@@ -53,30 +47,23 @@ const getBalancedJsonObject = (text) => {
   return "";
 };
 
-const parseGeminiJson = (data) => {
-  const responseText = getGeminiText(data);
+const parseGroqJson = (data) => {
+  const responseText = data.choices?.[0]?.message?.content?.trim() || "";
 
   if (!responseText) {
-    const finishReason = data.candidates?.[0]?.finishReason;
-    const blockReason = data.promptFeedback?.blockReason;
-    const reason = blockReason || finishReason || "unknown reason";
-    throw new Error(`Gemini returned no text. Reason: ${reason}.`);
+    throw new Error("Groq returned no text.");
   }
 
-  const fencedMatch = responseText.match(/```(?:json)?\s*([\s\S]*?)```/i);
-  const jsonText = fencedMatch?.[1]?.trim() || responseText.trim();
-  const jsonObject = getBalancedJsonObject(jsonText);
+  const jsonObject = getBalancedJsonObject(responseText);
 
   if (!jsonObject) {
-    const finishReason = data.candidates?.[0]?.finishReason;
-    const hint = finishReason ? ` Finish reason: ${finishReason}.` : "";
-    throw new Error(`Gemini returned incomplete JSON.${hint} Response started with: ${jsonText.slice(0, 160)}`);
+    throw new Error(`Groq returned incomplete JSON. Response started with: ${responseText.slice(0, 160)}`);
   }
 
   try {
     return JSON.parse(jsonObject);
   } catch (_error) {
-    throw new Error(`Gemini returned invalid JSON. Response started with: ${jsonText.slice(0, 160)}`);
+    throw new Error(`Groq returned invalid JSON. Response started with: ${responseText.slice(0, 160)}`);
   }
 };
 
@@ -98,20 +85,20 @@ const cleanAnalysis = (analysis, payload) => ({
   fitScore: Math.min(100, Math.max(0, Math.round(Number(analysis.fitScore) || 70))),
   extractedSkills: payload.extractedSkills || [],
   resumeFileName: payload.resumeFileName || "",
-  generationSource: "gemini",
-  generatedBy: process.env.GEMINI_MODEL || "gemini-2.5-flash"
+  generationSource: "groq",
+  generatedBy: process.env.GROQ_MODEL || "llama-3.3-70b-versatile"
 });
 
-export const generateGeminiAnalysis = async (payload) => {
-  const apiKey = process.env.GEMINI_API_KEY;
+export const generateGroqAnalysis = async (payload) => {
+  const apiKey = process.env.GROQ_API_KEY;
 
   if (!apiKey) {
-    const error = new Error("GEMINI_API_KEY is not configured. Add it to server/.env and restart the backend.");
+    const error = new Error("GROQ_API_KEY is not configured. Add it to server/.env and restart the backend.");
     error.statusCode = 503;
     throw error;
   }
 
-  const model = process.env.GEMINI_MODEL || "gemini-2.5-flash";
+  const model = process.env.GROQ_MODEL || "llama-3.3-70b-versatile";
   const extractedSkills = payload.extractedSkills?.length ? payload.extractedSkills.join(", ") : "No resume skills extracted";
   const prompt = `Create a concise preparation dashboard.
 
@@ -131,49 +118,42 @@ Requirements:
 - Arrays must contain 3 to 5 short items.
 - recentNews can include broad public developments or research prompts, but must not fabricate exact dates or fake headlines.
 
-Return only valid JSON. Do not wrap it in markdown.
-Use exactly these keys:
+Return only valid JSON with exactly these keys:
 companyName, role, overview, whatCompanyDoes, founderStory, missionOrMotto, products, services, requiredSkills, suggestedProjects, interviewTopics, onlineAssessment, interviewQuestionTypes, reviewSummary, recentNews, fitScore, missingSkills.
 Array fields must be arrays of strings. fitScore must be a number from 0 to 100.`;
 
-  const response = await fetch(
-    `https://generativelanguage.googleapis.com/v1beta/models/${model}:generateContent?key=${apiKey}`,
-    {
-      method: "POST",
-      headers: {
-        "Content-Type": "application/json"
-      },
-      body: JSON.stringify({
-        system_instruction: {
-          parts: [
-            {
-              text:
-                "You generate company and role preparation dashboards for students. Be specific to the company and role. Avoid generic template language. If public facts are uncertain, say so briefly instead of inventing exact news."
-            }
-          ]
+  const response = await fetch("https://api.groq.com/openai/v1/chat/completions", {
+    method: "POST",
+    headers: {
+      Authorization: `Bearer ${apiKey}`,
+      "Content-Type": "application/json"
+    },
+    body: JSON.stringify({
+      model,
+      messages: [
+        {
+          role: "system",
+          content:
+            "You generate company and role preparation dashboards for students. Be specific to the company and role. Avoid generic template language. If public facts are uncertain, say so briefly instead of inventing exact news. Always return valid JSON."
         },
-        contents: [
-          {
-            role: "user",
-            parts: [{ text: prompt }]
-          }
-        ],
-        generationConfig: {
-          response_mime_type: "application/json",
-          temperature: 0.4,
-          maxOutputTokens: 4096
+        {
+          role: "user",
+          content: prompt
         }
-      })
-    }
-  );
+      ],
+      response_format: { type: "json_object" },
+      temperature: 0.4,
+      max_tokens: 4096
+    })
+  });
 
   const data = await response.json();
 
   if (!response.ok) {
-    const error = new Error(data.error?.message || "Gemini analysis failed.");
+    const error = new Error(data.error?.message || "Groq analysis failed.");
     error.statusCode = response.status;
     throw error;
   }
 
-  return cleanAnalysis(parseGeminiJson(data), payload);
+  return cleanAnalysis(parseGroqJson(data), payload);
 };

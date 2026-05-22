@@ -18,7 +18,7 @@ const explanations = [
   { title: "Database Design", copy: "CompanyAnalysis stores generated results with timestamps, role context, skills, and placeholders for future enrichment." },
   { title: "API Layer", copy: "Express routes keep request validation, controller logic, and service orchestration separated for maintainability." },
   { title: "Scalability", copy: "The app can evolve toward stateless API instances, shared MongoDB, distributed cache, and background jobs." },
-  { title: "AI Integration", copy: "The analysis service can use Gemini, search APIs, embeddings, and resume scoring pipelines for richer preparation dashboards." }
+  { title: "AI Integration", copy: "The analysis service can use Groq, search APIs, embeddings, and resume scoring pipelines for richer preparation dashboards." }
 ];
 
 const SystemArchitecturePage = () => (

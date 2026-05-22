@@ -84,7 +84,7 @@ const companyAnalysisSchema = new mongoose.Schema(
     },
     generationSource: {
       type: String,
-      enum: ["gemini", "demo"],
+      enum: ["groq", "demo"],
       default: "demo"
     },
     generatedBy: {

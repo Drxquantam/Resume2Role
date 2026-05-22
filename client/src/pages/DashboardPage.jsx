@@ -75,8 +75,8 @@ const DashboardPage = () => {
           <div>
             <div className="flex flex-wrap gap-2">
               <Badge tone="mint">{analysis.role}</Badge>
-              <Badge tone={analysis.generationSource === "gemini" ? "sky" : "amber"}>
-                {analysis.generationSource === "gemini" ? `AI generated: ${analysis.generatedBy}` : "Demo fallback"}
+              <Badge tone={analysis.generationSource === "groq" ? "sky" : "amber"}>
+                {analysis.generationSource === "groq" ? `AI generated: ${analysis.generatedBy}` : "Demo fallback"}
               </Badge>
             </div>
             <h1 className="mt-5 text-4xl font-black tracking-tight text-white md:text-5xl">{analysis.companyName}</h1>

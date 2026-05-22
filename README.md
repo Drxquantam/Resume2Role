@@ -7,7 +7,7 @@ Resume2Role is a full-stack MERN company research platform for students preparin
 - Frontend: React, Vite, Tailwind CSS, React Router
 - Backend: Node.js, Express
 - Database: MongoDB with Mongoose
-- AI layer: Google Gemini API with a mock fallback only when explicitly enabled
+- AI layer: Groq API with a mock fallback only when explicitly enabled
 
 ## Project Structure
 
@@ -37,8 +37,8 @@ cp server/.env.example server/.env
 MONGODB_URI=mongodb://127.0.0.1:27017/resume2role
 PORT=5000
 CLIENT_URL=http://localhost:5173
-GEMINI_API_KEY=your_gemini_api_key
-GEMINI_MODEL=gemini-2.5-flash
+GROQ_API_KEY=your_groq_api_key
+GROQ_MODEL=llama-3.3-70b-versatile
 ALLOW_DEMO_FALLBACK=false
 ```
 
@@ -60,7 +60,7 @@ Backend: `http://localhost:5000`
 
 ## AI Mode
 
-The backend calls Google Gemini from `server/src/services/geminiAnalysisService.js`. Normal analysis requires `GEMINI_API_KEY`; if the key is missing, the API returns a clear setup error instead of fake template data. Set `ALLOW_DEMO_FALLBACK=true` only when you intentionally want mock/demo output.
+The backend calls Groq from `server/src/services/groqAnalysisService.js`. Normal analysis requires `GROQ_API_KEY`; if the key is missing, the API returns a clear setup error instead of fake template data. Set `ALLOW_DEMO_FALLBACK=true` only when you intentionally want mock/demo output.
 
 ## Deployment Notes
 
