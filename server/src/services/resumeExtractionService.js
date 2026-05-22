@@ -2,7 +2,21 @@ import { extractSkillsFromText } from "./skillExtractionService.js";
 
 const getExtension = (filename = "") => filename.split(".").pop()?.toLowerCase() || "";
 
+const ensurePdfGlobals = async () => {
+  if (globalThis.DOMMatrix && globalThis.DOMPoint && globalThis.DOMRect && globalThis.ImageData) {
+    return;
+  }
+
+  const canvas = await import("@napi-rs/canvas");
+  globalThis.DOMMatrix ||= canvas.DOMMatrix;
+  globalThis.DOMPoint ||= canvas.DOMPoint;
+  globalThis.DOMRect ||= canvas.DOMRect;
+  globalThis.ImageData ||= canvas.ImageData;
+  globalThis.Path2D ||= canvas.Path2D;
+};
+
 const extractPdfText = async (buffer) => {
+  await ensurePdfGlobals();
   const { PDFParse } = await import("pdf-parse");
   const parser = new PDFParse({ data: new Uint8Array(buffer) });
 
@@ -15,7 +29,8 @@ const extractPdfText = async (buffer) => {
 };
 
 const extractDocxText = async (buffer) => {
-  const mammoth = await import("mammoth");
+  const mammothModule = await import("mammoth");
+  const mammoth = mammothModule.default || mammothModule;
   const result = await mammoth.extractRawText({ buffer });
   return result.value || "";
 };
@@ -93,15 +108,21 @@ export const extractResumeSkills = async (file) => {
   const extension = getExtension(file.originalname);
   let text = "";
 
-  if (extension === "pdf" || file.mimetype === "application/pdf") {
-    text = await extractPdfText(file.buffer);
-  } else if (extension === "docx" || file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
-    text = await extractDocxText(file.buffer);
-  } else if (["txt", "md", "csv"].includes(extension) || file.mimetype?.startsWith("text/")) {
-    text = file.buffer.toString("utf8");
-  } else {
-    const error = new Error("Unsupported resume type. Upload a PDF, DOCX, TXT, MD, or CSV file.");
-    error.statusCode = 400;
+  try {
+    if (extension === "pdf" || file.mimetype === "application/pdf") {
+      text = await extractPdfText(file.buffer);
+    } else if (extension === "docx" || file.mimetype === "application/vnd.openxmlformats-officedocument.wordprocessingml.document") {
+      text = await extractDocxText(file.buffer);
+    } else if (["txt", "md", "csv"].includes(extension) || file.mimetype?.startsWith("text/")) {
+      text = file.buffer.toString("utf8");
+    } else {
+      const error = new Error("Unsupported resume type. Upload a PDF, DOCX, TXT, MD, or CSV file.");
+      error.statusCode = 400;
+      throw error;
+    }
+  } catch (parseError) {
+    const error = new Error(`Resume parser failed for ${extension || file.mimetype || "this file"}: ${parseError.message}`);
+    error.statusCode = parseError.statusCode || 400;
     throw error;
   }
 
